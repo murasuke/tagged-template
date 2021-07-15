@@ -1,46 +1,109 @@
-# Getting Started with Create React App
+# styled-componentsの不思議な仕組み(タグ名＋文字列)を簡単なサンプルで再現
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+* styled-componentの「タグ名`` ` ``cssのスタイル定義`` ` ``」という書き方が気になって仕方がないため調べてみました。変数？の後ろに括弧もなく突然`` ` ``テンプレート文字文字列`` ` ``が現れるやつです。
 
-## Available Scripts
+```typescript
+const TestDiv = styled.div`
+  color:blue;
+  font-size:20pt;
+`;`
+```
 
-In the project directory, you can run:
 
-### `yarn start`
+これは[タグ付きテンプレート](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Template_literals#tagged_templates)という構文で、関数に文字列を渡すのとほぼ同じ事ができるようです。詳細はリンク先でご確認ください。
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```javascript
+function tag(strings) {
+  console.log(strings.raw[0]);
+}
+tag`string text line 1 \n string text line 2`;
+// tag('文字列');
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## styled-componentsの仕組みを再現する最小限のサンプルコード
 
-### `yarn test`
+こんな感じで使える「なんちゃってstyled-componsnts」を作ってみます。
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```typescript
+// 「なんちゃってstyled-componsnts」を関数として呼び出して、コンポーネントを取得
+const Tag1 = pTag('color:red;');
 
-### `yarn build`
+// 「なんちゃってstyled-componsnts」をタグ付きテンプレートとして呼び出す
+const Tag2 = pTag`
+color:blue;
+font-size:20pt;
+`;
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+// Tag2はborderをprops経由で渡す
+return (
+  <div className="App">
+    <Tag1>Tag1</Tag1>
+    <Tag2 style={{border:'1px solid green'}}>Tag2</Tag2>
+  </div>
+);
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `yarn eject`
+* ソース全体
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+  * 仕組み自体は難しくありません。&lt;style&gt;タグと&lt;p&gt;タグをセットで作成し、ユニークなclass名をつけて、styleの適用をしています
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```tsx
+let seq = 0; // classNameを重複させないためのシーケンス番号
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+// 「<p>タグ＋スタイル設定」コンポーネントを返す「なんちゃってstyled-componsnts」
+const pTag = (styles: ReadonlyArray<string> | string) => {
+  return (props: any) => {
+    // class名を生成(重複しないようにseqをカウントアップ)
+    const clsNm = `clsNm${seq++}`;
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+    // <style>タグを<p>をセットで生成する
+    // 重複しないclass名でタグとセレクタを作成する
+    // propsはpタグに引き渡す
+    return (
+      <>
+        <style>.{clsNm} {'{'}{styles}{'}'}</style>
+        <p className={`${clsNm}`} {...props}>{props.children}</p>
+      </>    
+    )
+  }
+};
 
-## Learn More
+// 「なんちゃってstyled-componsnts」を関数として呼び出して、コンポーネントを取得
+const Tag1 = pTag('color:red;');
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+// 「なんちゃってstyled-componsnts」をタグ付きテンプレートとして呼び出す
+const Tag2 = pTag`
+color:blue;
+font-size:20pt;
+`;
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+// 生成したコンポーネントを表示する
+function App() {
+  return (
+    <div className="App">
+      <Tag1>Tag1 props.childrenに渡す文字列</Tag1>
+      <Tag2 style={{border:'1px solid green'}}>Tag2 props.childrenに渡す文字列</Tag2>
+    </div>
+  );
+}
+
+export default App;
+
+```
+
+
+* 生成した画面イメージ
+
+指定したスタイルが適用されていることがわかります。
+
+  ![img.png](./img/img1.png)
+
+
+* 生成したDOM
+
+  ![dom.png](./img/dom.png)
+## 参考ページ
+
+[Demystifying styled-components](https://www.joshwcomeau.com/react/demystifying-styled-components/)

@@ -26,7 +26,7 @@ tag`string text line 1 \n string text line 2`;
 
 ## styled-componentsの仕組みを再現する最小限のサンプルコード
 
-こんな感じで使える「なんちゃってstyled-componsnts」を作ってみます。
+こんな感じで使える「なんちゃってstyled-componsnts」を作ってみましょう。
 
 ```typescript
 // 「なんちゃってstyled-componsnts」を関数として呼び出して、コンポーネントを取得
